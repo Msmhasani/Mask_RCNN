@@ -28,6 +28,9 @@ from mrcnn import utils
 from distutils.version import LooseVersion
 assert LooseVersion(tf.__version__) >= LooseVersion("2.0")
 
+strategy = tf.distribute.MirroredStrategy()
+print('Number of devices: {} \n'.format(strategy.num_replicas_in_sync))
+
 tf.compat.v1.disable_eager_execution()
 
 ############################################################
@@ -1831,7 +1834,8 @@ class MaskRCNN(object):
         self.config = config
         self.model_dir = model_dir
         self.set_log_dir()
-        self.keras_model = self.build(mode=mode, config=config)
+        with strategy.scope():
+            self.keras_model = self.build(mode=mode, config=config)
 
     def build(self, mode, config):
         """Build Mask R-CNN architecture.
@@ -2178,7 +2182,8 @@ class MaskRCNN(object):
         self.keras_model.add_loss(tf.add_n(reg_losses))
 
         # Compile
-        self.keras_model.compile(
+        with strategy.scope():
+            self.keras_model.compile(
             optimizer=optimizer,
             loss=[None] * len(self.keras_model.outputs))
 
